@@ -1,0 +1,1170 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#0A0A0A">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="MLH Manager">
+<meta name="description" content="MLH Channel Manager - Gestion de réservations Booking.com">
+<title>MLH Channel Manager</title>
+
+<!-- PWA Manifest inline -->
+<script>
+const manifestData = {
+  name: "MLH Channel Manager",
+  short_name: "MLH Manager",
+  description: "Gestion de réservations et assistant IA pour propriétaires Booking.com",
+  start_url: "./",
+  display: "standalone",
+  background_color: "#0A0A0A",
+  theme_color: "#C17A3A",
+  orientation: "portrait-primary",
+  icons: [
+    { src: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'%3E%3Crect width='192' height='192' rx='32' fill='%230A0A0A'/%3E%3Ctext x='50%25' y='55%25' font-size='120' text-anchor='middle' dominant-baseline='middle'%3E🏡%3C/text%3E%3C/svg%3E", sizes: "192x192", type: "image/svg+xml" },
+    { src: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' rx='80' fill='%230A0A0A'/%3E%3Ctext x='50%25' y='55%25' font-size='320' text-anchor='middle' dominant-baseline='middle'%3E🏡%3C/text%3E%3C/svg%3E", sizes: "512x512", type: "image/svg+xml" }
+  ]
+};
+const blob = new Blob([JSON.stringify(manifestData)], {type: 'application/json'});
+const manifestURL = URL.createObjectURL(blob);
+const link = document.createElement('link');
+link.rel = 'manifest';
+link.href = manifestURL;
+document.head.appendChild(link);
+</script>
+
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;background:#000;color:#FFF;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;overflow-x:hidden}
+::-webkit-scrollbar{width:3px}
+::-webkit-scrollbar-thumb{background:#00358055;border-radius:2px}
+
+#app{display:flex;flex-direction:column;height:100vh;height:100dvh;background:#000}
+
+/* HEADER */
+.hdr{background:#003580;padding:14px 16px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;padding-top:max(14px,env(safe-area-inset-top))}
+.logo img{height:36px;width:auto;object-fit:contain}
+.conn-status{font-size:11px;color:rgba(255,255,255,0.7);font-weight:500}
+
+/* PAGE */
+.page{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:16px;padding-bottom:90px}
+
+/* BOTTOM NAV */
+.bottom-nav{position:fixed;bottom:0;left:0;right:0;background:#111;border-top:1px solid #1E1E1E;display:grid;grid-template-columns:repeat(5,1fr);padding-bottom:max(8px,env(safe-area-inset-bottom));z-index:100}
+.nav-btn{background:transparent;border:none;color:#555;padding:10px 4px 6px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:3px;font-size:9px;font-weight:600;letter-spacing:0.3px;text-transform:uppercase;font-family:inherit}
+.nav-btn .nav-icon{font-size:20px;line-height:1}
+.nav-btn.active{color:#0066FF}
+
+/* SECTION TITLES */
+.section-title{font-size:22px;font-weight:700;color:#FFF;margin-bottom:3px}
+.section-sub{font-size:12px;color:#666;margin-bottom:16px}
+.section-date{font-size:13px;font-weight:700;color:#0099FF;margin:14px 0 8px;letter-spacing:0.2px}
+
+/* CARDS */
+.card{background:#1A1A1A;border-radius:12px;border:1px solid #2A2A2A;overflow:hidden;margin-bottom:10px}
+.card-hdr{padding:13px 16px;border-bottom:1px solid #222;font-size:14px;font-weight:700;color:#FFF;display:flex;justify-content:space-between;align-items:center;background:#1E1E1E}
+
+/* KPI */
+.kpi-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px}
+.kpi{background:#0055CC;border-radius:12px;padding:14px;border:1px solid #0066EE}
+.kpi-icon{font-size:20px;margin-bottom:6px}
+.kpi-val{font-size:26px;font-weight:700;color:#FFF;line-height:1}
+.kpi-val.blue{color:#0099FF}
+.kpi-lbl{font-size:10px;font-weight:600;color:#555;text-transform:uppercase;letter-spacing:0.5px;margin-top:3px}
+
+/* REVENUE */
+.rev-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px}
+.rev-card{background:#003580;border-radius:12px;padding:14px;border:1px solid #0055DD}
+.rev-card.green{background:#00449F}
+.rev-lbl{font-size:9px;color:rgba(255,255,255,0.6);font-weight:600;letter-spacing:1.5px;text-transform:uppercase;margin-bottom:5px}
+.rev-val{font-size:16px;font-weight:700;color:#FFF;line-height:1.3}
+
+/* BADGES */
+.badge{border-radius:6px;padding:3px 8px;font-size:11px;font-weight:600;display:inline-flex;align-items:center;gap:4px}
+.badge-dot{width:5px;height:5px;border-radius:50%;flex-shrink:0}
+
+/* BUTTONS */
+.btn{border-radius:8px;padding:10px 18px;font-size:13px;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:6px;border:none;font-family:inherit;transition:opacity .15s;white-space:nowrap}
+.btn:active{opacity:0.7}
+.btn-primary{background:#003580;color:#FFF}
+.btn-secondary{background:#1E1E1E;color:#0099FF;border:1px solid #333}
+.btn-danger{background:#1E1E1E;color:#FF4444;border:1px solid #3A1A1A}
+.btn-sm{padding:6px 12px;font-size:12px;border-radius:7px}
+.btn-full{width:100%;justify-content:center}
+
+/* RES ROWS */
+.res-row{padding:12px 16px;border-bottom:1px solid #1E1E1E;display:flex;align-items:center;gap:10px}
+.res-row:last-child{border-bottom:none}
+.res-icon{width:38px;height:38px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;background:#222}
+.res-name{font-weight:700;font-size:15px;color:#FFF}
+.res-meta{font-size:11px;color:#666;margin-top:2px}
+
+/* RES CARD (reservations tab) */
+.res-card{background:#1A1A1A;border-radius:12px;border:1px solid #2A2A2A;margin-bottom:8px;overflow:hidden}
+.res-card-guest{font-size:16px;font-weight:700;color:#FFF;margin-bottom:6px}
+.res-card-detail{font-size:12px;color:#888;display:flex;align-items:center;gap:5px;margin-top:3px}
+.res-card-body{padding:14px}
+.res-actions{display:flex;gap:6px;padding:0 14px 12px}
+
+/* FILTERS */
+.filt-row{display:flex;gap:6px;margin-bottom:12px;overflow-x:auto;padding-bottom:4px}
+.filt-select{padding:8px 11px;border-radius:8px;border:1px solid #2A2A2A;background:#111;font-size:12px;color:#DDD;font-family:inherit;flex-shrink:0;outline:none;color:#CCC}
+.badge-count{background:#111;border-radius:8px;padding:5px 10px;font-size:11px;font-weight:600;color:#0099FF;border:1px solid #1E1E1E;flex-shrink:0}
+
+/* INPUTS */
+.inp-label{display:block;margin-bottom:5px;font-size:12px;font-weight:600;color:#888}
+.inp{width:100%;padding:11px 13px;border:1px solid #2A2A2A;border-radius:9px;font-size:14px;background:#111;color:#FFF;font-family:inherit;outline:none;appearance:none;-webkit-appearance:none}
+.inp:focus{border-color:#0066FF;box-shadow:0 0 0 2px rgba(0,102,255,0.2)}
+.inp-group{margin-bottom:12px}
+.grid-2col{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+
+/* AI */
+.ai-response{font-size:13px;line-height:1.7;color:#E0E0E0;white-space:pre-wrap;background:#111;border:1px solid #2A2A2A;border-radius:10px;padding:14px}
+.ai-empty{display:flex;align-items:center;justify-content:center;min-height:120px;flex-direction:column;gap:8px;color:#333}
+.ai-loading{display:flex;align-items:center;justify-content:center;min-height:120px;flex-direction:column;gap:8px;color:#0066FF}
+
+/* HIST */
+.hist-row{padding:10px 14px;border-bottom:1px solid #1E1E1E;cursor:pointer}
+.hist-row:active{background:#111}
+
+/* PROP CARDS */
+.prop-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.prop-card{background:#1A1A1A;border-radius:12px;border:1px solid #2A2A2A;overflow:hidden}
+.prop-hdr{padding:14px 12px 10px}
+.prop-flag{font-size:22px;margin-bottom:5px}
+.prop-name{font-size:13px;font-weight:700;color:#FFF;line-height:1.2}
+.prop-city{font-size:10px;color:#666;margin-top:2px}
+.prop-body{padding:8px 12px 12px}
+.prop-stat-row{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:6px}
+.prop-stat{background:#111;border-radius:7px;padding:7px 8px;text-align:center;border:1px solid #1E1E1E}
+.prop-stat-val{font-size:17px;font-weight:700;color:#0099FF}
+.prop-stat-lbl{font-size:9px;color:#555;font-weight:600;margin-top:2px}
+.prop-rev{border-radius:7px;padding:7px 8px;text-align:center;background:#00358022;border:1px solid #0066FF44}
+.prop-rev-val{font-size:12px;font-weight:700;color:#0099FF}
+.prop-rev-lbl{font-size:9px;color:#555;font-weight:600;margin-top:2px}
+
+/* MODAL */
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:500;display:flex;align-items:flex-end;justify-content:center}
+.overlay.hidden{display:none}
+.modal{background:#1A1A1A;border-radius:20px 20px 0 0;width:100%;max-width:480px;max-height:92vh;overflow-y:auto;border-top:1px solid #2A2A2A;padding-bottom:max(20px,env(safe-area-inset-bottom))}
+.modal-hdr{background:#003580;padding:16px 20px;display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;z-index:1;border-radius:20px 20px 0 0}
+.modal-title{color:#FFF;font-size:16px;font-weight:700}
+.modal-close{background:rgba(255,255,255,0.15);border:none;color:#FFF;border-radius:50%;width:30px;height:30px;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;font-family:inherit}
+.modal-body{padding:18px 20px}
+
+/* INSTALL BANNER */
+.install-banner{background:#00358018;border:1px solid #0066FF44;border-radius:12px;padding:13px 14px;margin-bottom:12px;display:flex;align-items:center;gap:10px}
+.install-banner.hidden{display:none}
+.install-close{background:none;border:none;color:#555;font-size:18px;cursor:pointer;margin-left:auto;padding:0 4px}
+
+/* EMPTY */
+.empty{padding:32px 16px;text-align:center}
+.empty-icon{font-size:36px;margin-bottom:8px;opacity:0.3}
+.empty-title{font-weight:700;font-size:14px;color:#555}
+.empty-sub{font-size:12px;color:#444;margin-top:4px}
+
+/* TOAST */
+.toast{position:fixed;top:80px;left:50%;transform:translateX(-50%);background:#003580;color:#FFF;border-radius:20px;padding:8px 18px;font-size:13px;font-weight:600;z-index:999;opacity:0;transition:opacity .3s;pointer-events:none;white-space:nowrap;box-shadow:0 4px 20px rgba(0,102,255,0.4)}
+.toast.show{opacity:1}
+
+select option{background:#1A1A1A;color:#FFF}
+.hidden{display:none !important}
+</style>
+</head>
+<body>
+<div id="app">
+
+<!-- HEADER -->
+<div class="hdr">
+  <div class="logo">
+    <img src="data:image/jpeg;base64,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" alt="MEDO Luxury Houses" style="height:36px;width:auto;object-fit:contain;border-radius:4px">
+  </div>
+  <div class="conn-status" id="conn-status">● En ligne</div>
+</div>
+
+<!-- PAGES -->
+<div class="page" id="page">
+
+  <!-- DASHBOARD -->
+  <div id="tab-dashboard">
+    <div id="install-banner" class="install-banner hidden">
+      <span style="font-size:22px">📲</span>
+      <div>
+        <div style="font-size:13px;font-weight:700;color:#FFD99A">Installer l'app</div>
+        <div style="font-size:11px;color:#888;margin-top:2px">Ajouter à l'écran d'accueil</div>
+      </div>
+      <button id="install-btn" class="btn btn-primary btn-sm" onclick="installApp()">Installer</button>
+      <button class="install-close" onclick="document.getElementById('install-banner').classList.add('hidden')">✕</button>
+    </div>
+    <div class="section-title">Bonjour 👋</div>
+    <div class="section-sub" id="today-date"></div>
+    <div class="kpi-grid" id="kpi-grid"></div>
+    <div class="rev-grid">
+      <div class="rev-card" style="position:relative;overflow:hidden;background:#0D0D0D;border:1px solid #2A2A2A;padding:14px">
+        <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 3 2'%3E%3Crect width='1' height='2' fill='%23F77F00'/%3E%3Crect x='1' width='1' height='2' fill='%23FFFFFF'/%3E%3Crect x='2' width='1' height='2' fill='%23009A44'/%3E%3C/svg%3E" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:0.18">
+        <div style="position:absolute;inset:0;background:rgba(0,0,0,0.45);border-radius:12px"></div>
+        <div style="position:relative;z-index:1">
+          <div style="font-size:26px;margin-bottom:5px">🇨🇮</div>
+          <div class="rev-lbl">Côte d'Ivoire</div>
+          <div class="rev-val" id="rev-xof">0 FCFA</div>
+        </div>
+      </div>
+      <div class="rev-card" style="position:relative;overflow:hidden;background:#0D0D0D;border:1px solid #2A2A2A;padding:14px">
+        <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 3 2'%3E%3Crect width='1' height='2' fill='%23002395'/%3E%3Crect x='1' width='1' height='2' fill='%23FFFFFF'/%3E%3Crect x='2' width='1' height='2' fill='%23ED2939'/%3E%3C/svg%3E" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:0.18">
+        <div style="position:absolute;inset:0;background:rgba(0,0,0,0.45);border-radius:12px"></div>
+        <div style="position:relative;z-index:1">
+          <div style="font-size:26px;margin-bottom:5px">🇫🇷</div>
+          <div class="rev-lbl">France</div>
+          <div class="rev-val" id="rev-eur">0 €</div>
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-hdr">Réservations récentes <button class="btn btn-secondary btn-sm" onclick="showTab('reservations')">Voir tout →</button></div>
+      <div id="recent-list"></div>
+    </div>
+  </div>
+
+  <!-- RESERVATIONS -->
+  <div id="tab-reservations" class="hidden">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+      <div class="section-title" style="margin-bottom:0">Réservations</div>
+      <button class="btn btn-primary btn-sm" onclick="openModal()">+ Nouvelle</button>
+    </div>
+    <div class="filt-row">
+      <select class="filt-select" id="filt-prop" onchange="renderReservations()"><option value="all">Toutes</option></select>
+      <select class="filt-select" id="filt-status" onchange="renderReservations()">
+        <option value="all">Tous statuts</option>
+        <option value="confirmed">Confirmée</option>
+        <option value="pending">En attente</option>
+        <option value="cancelled">Annulée</option>
+        <option value="checkin">Check-in</option>
+        <option value="checkout">Check-out</option>
+      </select>
+      <span class="badge-count" id="filt-count">0</span>
+    </div>
+    <div id="res-list"></div>
+  </div>
+
+  <!-- ASSISTANT IA -->
+  <div id="tab-assistant" class="hidden">
+    <div class="section-title">Assistant IA</div>
+    <div class="section-sub">Collez un message → l'IA rédige la réponse.</div>
+    <div class="card">
+      <div class="card-hdr" style="background:#1A1A1A;font-size:13px">💬 Message du client</div>
+      <div style="padding:14px">
+        <div class="inp-group"><label class="inp-label">Propriété</label><select class="inp" id="ai-prop"></select></div>
+        <div class="inp-group"><label class="inp-label">Message client *</label><textarea class="inp" id="ai-msg" rows="4" placeholder="Collez ici le message Booking.com Pulse..." style="resize:none"></textarea></div>
+        <div class="inp-group"><label class="inp-label">Contexte (optionnel)</label><textarea class="inp" id="ai-ctx" rows="2" placeholder="Ex: code wifi, heure d'arrivée..." style="resize:none"></textarea></div>
+        <button class="btn btn-primary btn-full" id="ai-btn" onclick="handleAI()">✦ Générer la réponse</button>
+      </div>
+    </div>
+    <div class="card" id="ai-result-card" style="display:none">
+      <div class="card-hdr" style="font-size:13px">
+        <span>✦ Réponse générée</span>
+        <button class="btn btn-secondary btn-sm" onclick="copyResponse()">📋 Copier</button>
+      </div>
+      <div style="padding:14px" id="ai-output"></div>
+    </div>
+    <div class="card hidden" id="hist-card">
+      <div class="card-hdr" style="font-size:13px">Historique <button class="btn btn-danger btn-sm" onclick="clearHistory()">Effacer</button></div>
+      <div id="hist-list" style="max-height:200px;overflow-y:auto"></div>
+    </div>
+  </div>
+
+  <!-- PROPERTIES -->
+  <!-- IMPORT TAB -->
+  <div id="tab-import" class="hidden">
+    <div class="section-title">Import automatique</div>
+    <div class="section-sub">PDF, Excel, CSV ou image — l'IA extrait tout.</div>
+
+    <!-- Drop zone -->
+    <div id="drop-zone" style="border:2px dashed #0066FF;border-radius:14px;padding:36px 20px;text-align:center;margin-bottom:14px;background:#050D1A">
+      <div style="font-size:48px;margin-bottom:12px">📥</div>
+      <div style="font-weight:700;font-size:16px;color:#FFF;margin-bottom:6px">Choisir un fichier</div>
+      <div style="font-size:12px;color:#555;margin-bottom:16px">Photo, PDF, Excel, CSV ou texte</div>
+      <button onclick="triggerFileInput()" class="btn btn-primary" style="font-size:15px;padding:12px 32px;border-radius:30px;margin-bottom:14px;width:100%;justify-content:center">📂 Sélectionner un fichier</button>
+      <input type="file" id="file-input" accept=".pdf,.xlsx,.xls,.csv,.txt,.png,.jpg,.jpeg,.webp,.gif" onchange="handleFileSelect(event)" style="display:none">
+      <div style="display:flex;justify-content:center;gap:6px;flex-wrap:wrap">
+        <span style="background:#0A1A2E;border:1px solid #0066FF;border-radius:20px;padding:4px 10px;font-size:10px;color:#0099FF;font-weight:600">PDF</span>
+        <span style="background:#0A1A2E;border:1px solid #0066FF;border-radius:20px;padding:4px 10px;font-size:10px;color:#0099FF;font-weight:600">Excel</span>
+        <span style="background:#0A1A2E;border:1px solid #0066FF;border-radius:20px;padding:4px 10px;font-size:10px;color:#0099FF;font-weight:600">CSV</span>
+        <span style="background:#0A1A2E;border:1px solid #0066FF;border-radius:20px;padding:4px 10px;font-size:10px;color:#0099FF;font-weight:600">Image</span>
+        <span style="background:#0A1A2E;border:1px solid #0066FF;border-radius:20px;padding:4px 10px;font-size:10px;color:#0099FF;font-weight:600">Texte</span>
+      </div>
+    </div>
+
+    <!-- Status -->
+    <div id="import-status" style="display:none" class="card">
+      <div style="padding:16px">
+        <div id="import-status-content"></div>
+      </div>
+    </div>
+
+    <!-- Preview -->
+    <div id="import-preview" style="display:none">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+        <div style="font-size:14px;font-weight:700;color:#FFF">Données extraites</div>
+        <div style="display:flex;gap:6px">
+          <button class="btn btn-secondary btn-sm" onclick="clearImport()">Annuler</button>
+          <button class="btn btn-primary btn-sm" id="confirm-import-btn" onclick="confirmImport()">✓ Importer tout</button>
+        </div>
+      </div>
+      <div id="import-list"></div>
+    </div>
+  </div>
+
+    <div id="tab-properties" class="hidden">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+      <div class="section-title" style="margin-bottom:0">Mes propriétés</div>
+      <button class="btn btn-primary btn-sm" onclick="openPropModal()">+ Ajouter</button>
+    </div>
+    <div id="prop-grid"></div>
+  </div>
+
+  <!-- PROP MODAL -->
+  <div class="overlay hidden" id="prop-modal-overlay">
+    <div class="modal">
+      <div class="modal-hdr">
+        <span class="modal-title" id="prop-modal-title">Nouvelle propriété</span>
+        <button class="modal-close" onclick="closePropModal()">✕</button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="pf-id">
+        <div class="inp-group"><label class="inp-label">Nom / Quartier *</label><input class="inp" id="pf-name" placeholder="Ex: Cocody Riviera, Plateau Centre..."></div>
+        <div class="inp-group"><label class="inp-label">Ville *</label><input class="inp" id="pf-city" placeholder="Ex: Abidjan, Paris, Lyon..."></div>
+        <div class="inp-group"><label class="inp-label">Pays *</label>
+          <select class="inp" id="pf-country" onchange="updateCurrency()">
+            <option value="CI">🇨🇮 Côte d'Ivoire</option>
+            <option value="FR">🇫🇷 France</option>
+          </select>
+        </div>
+        <div class="inp-group"><label class="inp-label">Devise</label>
+          <select class="inp" id="pf-currency">
+            <option value="XOF">Franc CFA (XOF)</option>
+            <option value="EUR">Euro (EUR)</option>
+          </select>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:4px">
+          <button class="btn btn-secondary btn-full" onclick="closePropModal()">Annuler</button>
+          <button class="btn btn-primary btn-full" onclick="saveProp()">Enregistrer</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- BOTTOM NAV -->
+<div class="bottom-nav">
+  <button class="nav-btn active" onclick="showTab('dashboard')"><span class="nav-icon">⬡</span>Dashboard</button>
+  <button class="nav-btn" onclick="showTab('reservations')"><span class="nav-icon">📋</span>Résas</button>
+  <button class="nav-btn" onclick="showTab('assistant')"><span class="nav-icon">✦</span>IA</button>
+  <button class="nav-btn" onclick="showTab('import')"><span class="nav-icon">📥</span>Import</button>
+  <button class="nav-btn" onclick="showTab('properties')"><span class="nav-icon">🏠</span>Propriétés</button>
+</div>
+
+<!-- MODAL (bottom sheet) -->
+<div class="overlay hidden" id="modal-overlay">
+  <div class="modal">
+    <div class="modal-hdr">
+      <span class="modal-title" id="modal-title">Nouvelle réservation</span>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="edit-id">
+      <div class="inp-group"><label class="inp-label">Nom du client *</label><input class="inp" id="f-guest" placeholder="Ex: Marie Dupont" type="text"></div>
+      <div class="inp-group"><label class="inp-label">Propriété *</label><select class="inp" id="f-prop"></select></div>
+      <div class="grid-2col">
+        <div class="inp-group"><label class="inp-label">Check-in *</label><input class="inp" type="date" id="f-checkin"></div>
+        <div class="inp-group"><label class="inp-label">Check-out *</label><input class="inp" type="date" id="f-checkout"></div>
+      </div>
+      <div class="grid-2col">
+        <div class="inp-group"><label class="inp-label">Montant</label><input class="inp" type="number" id="f-amount" placeholder="0" inputmode="numeric"></div>
+        <div class="inp-group"><label class="inp-label">Statut</label>
+          <select class="inp" id="f-status">
+            <option value="pending">En attente</option>
+            <option value="confirmed">Confirmée</option>
+            <option value="checkin">Check-in</option>
+            <option value="checkout">Check-out</option>
+            <option value="cancelled">Annulée</option>
+          </select>
+        </div>
+      </div>
+      <div class="inp-group"><label class="inp-label">Téléphone</label><input class="inp" id="f-phone" placeholder="+225 07 00 00 00 00" type="tel"></div>
+      <div class="inp-group"><label class="inp-label">Notes</label><textarea class="inp" id="f-notes" rows="2" placeholder="Informations supplémentaires..." style="resize:none"></textarea></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:4px">
+        <button class="btn btn-secondary btn-full" onclick="closeModal()">Annuler</button>
+        <button class="btn btn-primary btn-full" onclick="saveReservation()">Enregistrer</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<!-- CONFIRM MODAL -->
+<div class="overlay hidden" id="confirm-overlay">
+  <div class="modal" style="border-radius:16px">
+    <div style="padding:24px 20px 16px;text-align:center">
+      <div style="font-size:32px;margin-bottom:12px">⚠️</div>
+      <div style="font-size:15px;font-weight:700;color:#FFF;line-height:1.4" id="confirm-msg">Êtes-vous sûr ?</div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:0 20px 20px">
+      <button class="btn btn-secondary btn-full" onclick="closeConfirm()">Annuler</button>
+      <button class="btn btn-danger btn-full" id="confirm-ok-btn" onclick="confirmOK()">Supprimer</button>
+    </div>
+  </div>
+</div>
+</div>
+
+<script>
+/* MLH Channel Manager - Pure ES5, no modern syntax */
+
+/* ===== DATA ===== */
+var DEFAULT_PROPS = [
+  {id:"mar1",name:"Large Studio",city:"Abidjan",country:"CI",currency:"XOF",accent:"#0088FF"},
+  {id:"pla1",name:"2 Pieces",city:"Abidjan",country:"CI",currency:"XOF",accent:"#0066DD"}
+];
+
+var SC = {
+  confirmed:{label:"Confirmee",bg:"#003366",color:"#66BBFF",dot:"#0099FF"},
+  pending:{label:"En attente",bg:"#002244",color:"#99CCFF",dot:"#0066FF"},
+  cancelled:{label:"Annulee",bg:"#2B0000",color:"#FF8888",dot:"#FF4444"},
+  checkin:{label:"Check-in",bg:"#001A40",color:"#33AAFF",dot:"#0077FF"},
+  checkout:{label:"Check-out",bg:"#00224D",color:"#66CCFF",dot:"#0055FF"}
+};
+
+var PROPS = [];
+var reservations = [];
+var aiHistory = [];
+var aiResponseText = "";
+var deferredPrompt = null;
+var currentTab = "dashboard";
+var importedData = [];
+var _confirmCallback = null;
+
+/* ===== UTILS ===== */
+function getFlag(c) { return c === "CI" ? "🇨🇮" : "🇫🇷"; }
+
+function fmt(a, c) {
+  if (c === "XOF") return Number(a).toLocaleString("fr-FR") + " FCFA";
+  return Number(a).toLocaleString("fr-FR") + " EUR";
+}
+
+function td() { return new Date().toISOString().split("T")[0]; }
+
+function nights(a, b) {
+  var d = (new Date(b) - new Date(a)) / 86400000;
+  return (isNaN(d) || d < 0) ? 0 : d;
+}
+
+function badge(s) {
+  var c = SC[s] || SC.pending;
+  return "<span class=\"badge\" style=\"background:" + c.bg + ";color:" + c.color + "\">" +
+    "<span class=\"badge-dot\" style=\"background:" + c.dot + "\"></span>" + c.label + "</span>";
+}
+
+/* ===== STORAGE ===== */
+function loadProps() {
+  try {
+    var p = localStorage.getItem("mlh_props");
+    PROPS = p ? JSON.parse(p) : JSON.parse(JSON.stringify(DEFAULT_PROPS));
+  } catch(e) { PROPS = JSON.parse(JSON.stringify(DEFAULT_PROPS)); }
+}
+function saveProps() { try { localStorage.setItem("mlh_props", JSON.stringify(PROPS)); } catch(e) {} }
+
+function loadData() {
+  try { var r = localStorage.getItem("mlh_res"); if (r) reservations = JSON.parse(r); } catch(e) {}
+  try { var h = localStorage.getItem("mlh_aih"); if (h) aiHistory = JSON.parse(h); } catch(e) {}
+  /* Preload from Booking.com screenshot if empty */
+  if (reservations.length === 0) {
+    reservations = [
+      {id:"r_001",guestName:"Udensi Uguru Ekeoma",propertyId:"mar1",checkIn:"2026-03-17",checkOut:"2026-03-24",amount:"",status:"checkin",phone:"",notes:"7 nuits - 2 adultes"},
+      {id:"r_002",guestName:"Ramatoulaye Diallo",propertyId:"pla1",checkIn:"2026-03-19",checkOut:"2026-03-25",amount:"",status:"confirmed",phone:"",notes:"6 nuits - 1 adulte - Genius"},
+      {id:"r_003",guestName:"Stephane Idiane Mengue Monthe",propertyId:"mar1",checkIn:"2026-03-25",checkOut:"2026-04-01",amount:"",status:"confirmed",phone:"",notes:"7 nuits - 1 adulte - Genius"},
+      {id:"r_004",guestName:"Michaelle Abezoua",propertyId:"pla1",checkIn:"2026-04-01",checkOut:"2026-04-10",amount:"",status:"confirmed",phone:"",notes:"9 nuits - 1 adulte"}
+    ];
+    saveRes();
+  }
+}
+function saveRes() { try { localStorage.setItem("mlh_res", JSON.stringify(reservations)); } catch(e) {} }
+function saveAih() { try { localStorage.setItem("mlh_aih", JSON.stringify(aiHistory.slice(0, 20))); } catch(e) {} }
+
+/* ===== TOAST ===== */
+function toast(msg) {
+  var t = document.getElementById("toast");
+  t.textContent = msg;
+  t.className = "toast show";
+  setTimeout(function() { t.className = "toast"; }, 2200);
+}
+
+/* ===== TABS ===== */
+function showTab(t) {
+  var tabs = ["dashboard","reservations","assistant","import","properties"];
+  for (var i = 0; i < tabs.length; i++) {
+    var el = document.getElementById("tab-" + tabs[i]);
+    if (el) el.className = (tabs[i] === t) ? "" : "hidden";
+  }
+  var btns = document.querySelectorAll(".nav-btn");
+  for (var j = 0; j < btns.length; j++) {
+    btns[j].className = (j === tabs.indexOf(t)) ? "nav-btn active" : "nav-btn";
+  }
+  currentTab = t;
+  document.getElementById("page").scrollTop = 0;
+  if (t === "dashboard") renderDashboard();
+  if (t === "reservations") renderReservations();
+  if (t === "properties") renderProperties();
+  if (t === "assistant") renderHistory();
+}
+
+/* ===== DASHBOARD ===== */
+function renderDashboard() {
+  var el = document.getElementById("today-date");
+  if (el) el.textContent = new Date().toLocaleDateString("fr-FR", {weekday:"long",year:"numeric",month:"long",day:"numeric"});
+  var ts = td();
+  var arriving = 0, departing = 0, active = 0, pending = 0;
+  for (var i = 0; i < reservations.length; i++) {
+    var r = reservations[i];
+    if (r.status === "cancelled") continue;
+    if (r.checkIn === ts) arriving++;
+    if (r.checkOut === ts) departing++;
+    if (r.status === "confirmed" && r.checkIn <= ts && r.checkOut >= ts) active++;
+    if (r.status === "pending") pending++;
+  }
+  var kpis = [
+    {l:"Arrivees",v:arriving,i:"🛬",c:"#FFFFFF",bg:"#0055CC"},
+    {l:"Departs",v:departing,i:"🛫",c:"#FFFFFF",bg:"#0055CC"},
+    {l:"En cours",v:active,i:"🏠",c:"#FFFFFF",bg:"#0055CC"},
+    {l:"En attente",v:pending,i:"⏳",c:"#FFFFFF",bg:"#0055CC"}
+  ];
+  var kpiHtml = "";
+  for (var k = 0; k < kpis.length; k++) {
+    kpiHtml += "<div class=\"kpi\" style=\"background:" + kpis[k].bg + "\">" +
+      "<div class=\"kpi-icon\">" + kpis[k].i + "</div>" +
+      "<div class=\"kpi-val\" style=\"color:" + kpis[k].c + "\">" + kpis[k].v + "</div>" +
+      "<div class=\"kpi-lbl\">" + kpis[k].l + "</div></div>";
+  }
+  document.getElementById("kpi-grid").innerHTML = kpiHtml;
+
+  var xof = 0, eur = 0;
+  for (var n = 0; n < reservations.length; n++) {
+    var rv = reservations[n];
+    if (rv.status === "cancelled") continue;
+    var p = getProp(rv.propertyId);
+    if (p && p.currency === "XOF") xof += Number(rv.amount || 0);
+    else if (p && p.currency === "EUR") eur += Number(rv.amount || 0);
+  }
+  document.getElementById("rev-xof").textContent = fmt(xof, "XOF");
+  document.getElementById("rev-eur").textContent = fmt(eur, "EUR");
+
+  var recent = reservations.slice().reverse().slice(0, 5);
+  var rl = document.getElementById("recent-list");
+  if (!recent.length) {
+    rl.innerHTML = "<div class=\"empty\"><div class=\"empty-icon\">📭</div><div class=\"empty-title\">Aucune reservation</div></div>";
+    return;
+  }
+  var html = "";
+  for (var m = 0; m < recent.length; m++) {
+    var re = recent[m];
+    var rp = getProp(re.propertyId);
+    html += "<div class=\"res-row\">" +
+      "<div class=\"res-icon\" style=\"background:" + (rp ? rp.accent : "#333") + "22\">" + (rp ? getFlag(rp.country) : "") + "</div>" +
+      "<div style=\"flex:1;min-width:0\"><div class=\"res-name\">" + re.guestName + "</div>" +
+      "<div class=\"res-meta\">" + (rp ? rp.name : "") + " - " + re.checkIn + " > " + re.checkOut + "</div></div>" +
+      "<div style=\"text-align:right;flex-shrink:0;margin-left:8px\">" + badge(re.status) +
+      (re.amount ? "<div style=\"font-size:11px;font-weight:700;color:" + (rp ? rp.accent : "#0099FF") + ";margin-top:2px\">" + fmt(re.amount, rp ? rp.currency : "XOF") + "</div>" : "") +
+      "</div></div>";
+  }
+  rl.innerHTML = html;
+}
+
+function getProp(id) {
+  for (var i = 0; i < PROPS.length; i++) {
+    if (PROPS[i].id === id) return PROPS[i];
+  }
+  return null;
+}
+
+/* ===== RESERVATIONS ===== */
+function renderReservations() {
+  var fp = document.getElementById("filt-prop").value;
+  var fs = document.getElementById("filt-status").value;
+  var filt = [];
+  for (var i = 0; i < reservations.length; i++) {
+    var r = reservations[i];
+    if ((fp === "all" || r.propertyId === fp) && (fs === "all" || r.status === fs)) filt.push(r);
+  }
+  document.getElementById("filt-count").textContent = filt.length + "";
+  var rl = document.getElementById("res-list");
+  if (!filt.length) {
+    rl.innerHTML = "<div class=\"card\"><div class=\"empty\"><div class=\"empty-icon\">🗓️</div><div class=\"empty-title\">Aucune reservation trouvee</div></div></div>";
+    return;
+  }
+  filt.sort(function(a, b) { return a.checkIn < b.checkIn ? 1 : -1; });
+  var html = "";
+  for (var j = 0; j < filt.length; j++) {
+    var r2 = filt[j];
+    var p2 = getProp(r2.propertyId);
+    var n = nights(r2.checkIn, r2.checkOut);
+    html += "<div class=\"res-card\">" +
+      "<div class=\"res-card-body\">" +
+      "<div class=\"res-icon\" style=\"background:" + (p2 ? p2.accent : "#333") + "22;border:2px solid " + (p2 ? p2.accent : "#333") + "44;display:flex;align-items:center;justify-content:center\">" + (p2 ? getFlag(p2.country) : "") + "</div>" +
+      "<div style=\"flex:1;min-width:0\">" +
+      "<div style=\"font-weight:700;font-size:14px;color:#F0F0F0\">" + r2.guestName + "</div>" +
+      "<div style=\"font-size:11px;color:#777;margin-top:2px\">" + (p2 ? p2.name : "") + "</div>" +
+      "<div style=\"font-size:11px;color:#555;margin-top:2px\">📅 " + r2.checkIn + " > " + r2.checkOut + " - " + n + "n</div>" +
+      "<div style=\"margin-top:5px\">" + badge(r2.status) +
+      (r2.amount ? " <span style=\"font-size:12px;font-weight:700;color:" + (p2 ? p2.accent : "#0099FF") + "\">" + fmt(r2.amount, p2 ? p2.currency : "XOF") + "</span>" : "") +
+      "</div></div></div>" +
+      "<div class=\"res-actions\">" +
+      "<button class=\"btn btn-secondary btn-sm\" style=\"flex:1;justify-content:center\" onclick=\"editReservation('" + r2.id + "')\">Modifier</button>" +
+      "<button class=\"btn btn-danger btn-sm\" onclick=\"deleteReservation('" + r2.id + "')\">X</button>" +
+      "</div></div>";
+  }
+  rl.innerHTML = html;
+}
+
+/* ===== PROPERTIES ===== */
+function renderProperties() {
+  var ts = td();
+  var pg = document.getElementById("prop-grid");
+  if (!PROPS.length) {
+    pg.innerHTML = "<div class=\"card\"><div class=\"empty\"><div class=\"empty-icon\">🏠</div><div class=\"empty-title\">Aucune propriete</div><div class=\"empty-sub\">Appuyez sur + Ajouter</div></div></div>";
+    return;
+  }
+  var html = "";
+  for (var i = 0; i < PROPS.length; i++) {
+    var p = PROPS[i];
+    var pr = [];
+    for (var j = 0; j < reservations.length; j++) { if (reservations[j].propertyId === p.id) pr.push(reservations[j]); }
+    var act = 0;
+    for (var k = 0; k < pr.length; k++) { if (pr[k].status === "confirmed" && pr[k].checkIn <= ts && pr[k].checkOut >= ts) act++; }
+    var tot = 0;
+    for (var l = 0; l < pr.length; l++) { if (pr[l].status !== "cancelled") tot += Number(pr[l].amount || 0); }
+    html += "<div class=\"card\" style=\"margin-bottom:8px\">" +
+      "<div style=\"padding:14px 16px;border-bottom:1px solid #1E1E1E;display:flex;align-items:center;gap:10px\">" +
+      "<div style=\"font-size:28px;line-height:1\">" + getFlag(p.country) + "</div>" +
+      "<div style=\"flex:1;min-width:0\">" +
+      "<div style=\"font-weight:700;font-size:15px;color:#FFF\">" + p.name + "</div>" +
+      "<div style=\"font-size:11px;color:#555;margin-top:2px\">" + p.city + " - " + (p.country === "CI" ? "Cote d Ivoire" : "France") + " - " + p.currency + "</div>" +
+      "</div>" +
+      "<div style=\"display:flex;gap:6px;flex-shrink:0\">" +
+      "<button class=\"btn btn-secondary btn-sm\" onclick=\"openPropModal('" + p.id + "')\">Modifier</button>" +
+      "<button class=\"btn btn-danger btn-sm\" onclick=\"deleteProp('" + p.id + "')\">X</button>" +
+      "</div></div>" +
+      "<div style=\"display:grid;grid-template-columns:1fr 1fr 1fr\">" +
+      "<div style=\"padding:10px;text-align:center;border-right:1px solid #1E1E1E\"><div style=\"font-size:18px;font-weight:700;color:#0099FF\">" + pr.length + "</div><div style=\"font-size:9px;color:#555;text-transform:uppercase\">Resas</div></div>" +
+      "<div style=\"padding:10px;text-align:center;border-right:1px solid #1E1E1E\"><div style=\"font-size:18px;font-weight:700;color:#0099FF\">" + act + "</div><div style=\"font-size:9px;color:#555;text-transform:uppercase\">Actif</div></div>" +
+      "<div style=\"padding:10px;text-align:center\"><div style=\"font-size:12px;font-weight:700;color:#0099FF\">" + fmt(tot, p.currency) + "</div><div style=\"font-size:9px;color:#555;text-transform:uppercase\">Revenus</div></div>" +
+      "</div></div>";
+  }
+  pg.innerHTML = html;
+}
+
+/* ===== AI HISTORY ===== */
+function renderHistory() {
+  var hc = document.getElementById("hist-card");
+  if (!aiHistory.length) { hc.className = "card hidden"; return; }
+  hc.className = "card";
+  var html = "";
+  for (var i = 0; i < aiHistory.length; i++) {
+    var h = aiHistory[i];
+    html += "<div class=\"hist-row\" onclick=\"loadHistory('" + h.id + "')\">" +
+      "<div style=\"display:flex;justify-content:space-between;margin-bottom:2px\">" +
+      "<span style=\"font-size:11px;font-weight:700;color:#0099FF\">" + (h.property || "") + "</span>" +
+      "<span style=\"font-size:10px;color:#555\">" + (h.ts || "") + "</span></div>" +
+      "<div style=\"font-size:11px;color:#888\">" + (h.message || "").slice(0, 70) + (h.message && h.message.length > 70 ? "..." : "") + "</div></div>";
+  }
+  document.getElementById("hist-list").innerHTML = html;
+}
+
+function loadHistory(id) {
+  for (var i = 0; i < aiHistory.length; i++) {
+    if (aiHistory[i].id === id) {
+      document.getElementById("ai-msg").value = aiHistory[i].message;
+      showAIResponse(aiHistory[i].response);
+      return;
+    }
+  }
+}
+
+function showAIResponse(text) {
+  aiResponseText = text;
+  document.getElementById("ai-result-card").style.display = "block";
+  document.getElementById("ai-output").innerHTML = "<div class=\"ai-response\">" + text + "</div>";
+}
+
+function copyResponse() {
+  if (navigator.clipboard) {
+    navigator.clipboard.writeText(aiResponseText).then(function() { toast("Copie !"); });
+  } else {
+    var ta = document.createElement("textarea");
+    ta.value = aiResponseText;
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand("copy");
+    document.body.removeChild(ta);
+    toast("Copie !");
+  }
+}
+
+function clearHistory() { aiHistory = []; saveAih(); renderHistory(); }
+
+/* ===== AI ASSISTANT ===== */
+function handleAI() {
+  var msg = document.getElementById("ai-msg").value.trim();
+  if (!msg) return;
+  var pid = document.getElementById("ai-prop").value;
+  var ctx = document.getElementById("ai-ctx").value.trim();
+  var prop = getProp(pid);
+  var btn = document.getElementById("ai-btn");
+  btn.disabled = true;
+  btn.textContent = "Generation...";
+  document.getElementById("ai-result-card").style.display = "block";
+  document.getElementById("ai-output").innerHTML = "<div class=\"ai-loading\"><div style=\"font-size:28px\">...</div><div style=\"font-size:12px;font-weight:600\">Generation en cours</div></div>";
+  var country = (prop && prop.country === "CI") ? "Cote d Ivoire" : "France";
+  var devise = (prop && prop.currency === "XOF") ? "Francs CFA" : "Euro";
+  var pname = prop ? prop.name : "";
+  var pcity = prop ? prop.city : "";
+  var sys = "Tu es assistant MLH. Propriete: " + pname + " (" + pcity + ", " + country + "). Devise: " + devise + (ctx ? ". Contexte: " + ctx : "") + ". Reponds professionnellement, max 150 mots. Signe: L equipe MLH. Reponds dans la langue du client.";
+  fetch("/.netlify/functions/claude-proxy", {
+    method: "POST",
+    headers: {"Content-Type": "application/json"},
+    body: JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:1000,system:sys,messages:[{role:"user",content:msg}]})
+  })
+  .then(function(r) { return r.json(); })
+  .then(function(d) {
+    var block = d.content && d.content.filter(function(b) { return b.type === "text"; })[0];
+    var reply = block ? block.text : "Erreur.";
+    showAIResponse(reply);
+    aiHistory.unshift({id: Date.now().toString(), property: pname, message: msg, response: reply, ts: new Date().toLocaleString("fr-FR")});
+    saveAih();
+    renderHistory();
+    toast("Reponse generee !");
+    btn.disabled = false;
+    btn.textContent = "Generer la reponse";
+  })
+  .catch(function() {
+    document.getElementById("ai-output").innerHTML = "<div class=\"ai-response\" style=\"color:#FF6B6B\">Erreur de connexion.</div>";
+    btn.disabled = false;
+    btn.textContent = "Generer la reponse";
+  });
+}
+
+/* ===== MODALS ===== */
+function openModal(id) {
+  document.getElementById("edit-id").value = id || "";
+  document.getElementById("modal-title").textContent = id ? "Modifier la reservation" : "Nouvelle reservation";
+  if (id) {
+    for (var i = 0; i < reservations.length; i++) {
+      if (reservations[i].id === id) {
+        var r = reservations[i];
+        document.getElementById("f-guest").value = r.guestName || "";
+        document.getElementById("f-prop").value = r.propertyId || "";
+        document.getElementById("f-checkin").value = r.checkIn || "";
+        document.getElementById("f-checkout").value = r.checkOut || "";
+        document.getElementById("f-amount").value = r.amount || "";
+        document.getElementById("f-status").value = r.status || "pending";
+        document.getElementById("f-phone").value = r.phone || "";
+        document.getElementById("f-notes").value = r.notes || "";
+        break;
+      }
+    }
+  } else {
+    document.getElementById("f-guest").value = "";
+    document.getElementById("f-prop").value = PROPS.length ? PROPS[0].id : "";
+    document.getElementById("f-checkin").value = td();
+    document.getElementById("f-checkout").value = "";
+    document.getElementById("f-amount").value = "";
+    document.getElementById("f-status").value = "pending";
+    document.getElementById("f-phone").value = "";
+    document.getElementById("f-notes").value = "";
+  }
+  document.getElementById("modal-overlay").className = "overlay";
+  document.body.style.overflow = "hidden";
+}
+
+function closeModal() {
+  document.getElementById("modal-overlay").className = "overlay hidden";
+  document.body.style.overflow = "";
+}
+
+function saveReservation() {
+  var g = document.getElementById("f-guest").value.trim();
+  var ci = document.getElementById("f-checkin").value;
+  var co = document.getElementById("f-checkout").value;
+  if (!g || !ci || !co) { toast("Champs obligatoires manquants"); return; }
+  var id = document.getElementById("edit-id").value;
+  var data = {
+    guestName: g,
+    propertyId: document.getElementById("f-prop").value,
+    checkIn: ci, checkOut: co,
+    amount: document.getElementById("f-amount").value,
+    status: document.getElementById("f-status").value,
+    phone: document.getElementById("f-phone").value,
+    notes: document.getElementById("f-notes").value
+  };
+  if (id) {
+    for (var i = 0; i < reservations.length; i++) {
+      if (reservations[i].id === id) { reservations[i] = Object.assign({}, data, {id: id}); break; }
+    }
+  } else {
+    data.id = Date.now().toString();
+    reservations.push(data);
+  }
+  saveRes();
+  closeModal();
+  toast(id ? "Reservation modifiee" : "Reservation ajoutee");
+  renderReservations();
+  renderDashboard();
+}
+
+function editReservation(id) { openModal(id); }
+function deleteReservation(id) {
+  showConfirm("Supprimer cette reservation ?", function() {
+    for (var i = 0; i < reservations.length; i++) {
+      if (reservations[i].id === id) { reservations.splice(i, 1); break; }
+    }
+    saveRes();
+    toast("Reservation supprimee");
+    renderReservations();
+    renderDashboard();
+  });
+}
+
+/* ===== PROPERTIES MODAL ===== */
+function openPropModal(id) {
+  document.getElementById("pf-id").value = id || "";
+  document.getElementById("prop-modal-title").textContent = id ? "Modifier" : "Nouvelle propriete";
+  if (id) {
+    var p = getProp(id);
+    if (p) {
+      document.getElementById("pf-name").value = p.name;
+      document.getElementById("pf-city").value = p.city;
+      document.getElementById("pf-country").value = p.country;
+      document.getElementById("pf-currency").value = p.currency;
+    }
+  } else {
+    document.getElementById("pf-name").value = "";
+    document.getElementById("pf-city").value = "";
+    document.getElementById("pf-country").value = "CI";
+    document.getElementById("pf-currency").value = "XOF";
+  }
+  document.getElementById("prop-modal-overlay").className = "overlay";
+  document.body.style.overflow = "hidden";
+}
+
+function closePropModal() {
+  document.getElementById("prop-modal-overlay").className = "overlay hidden";
+  document.body.style.overflow = "";
+}
+
+function updateCurrency() {
+  var c = document.getElementById("pf-country").value;
+  document.getElementById("pf-currency").value = (c === "CI") ? "XOF" : "EUR";
+}
+
+function saveProp() {
+  var name = document.getElementById("pf-name").value.trim();
+  var city = document.getElementById("pf-city").value.trim();
+  if (!name || !city) { toast("Nom et ville obligatoires"); return; }
+  var id = document.getElementById("pf-id").value;
+  var accents = ["#0088FF","#0066DD","#0099FF","#33AAFF","#0077EE","#55AAFF"];
+  var data = {name: name, city: city, country: document.getElementById("pf-country").value, currency: document.getElementById("pf-currency").value, accent: accents[PROPS.length % accents.length]};
+  if (id) {
+    for (var i = 0; i < PROPS.length; i++) {
+      if (PROPS[i].id === id) { PROPS[i] = Object.assign({}, PROPS[i], data); break; }
+    }
+    toast("Propriete modifiee");
+  } else {
+    data.id = "p_" + Date.now();
+    PROPS.push(data);
+    toast("Propriete ajoutee");
+  }
+  saveProps();
+  closePropModal();
+  renderProperties();
+  initSelects();
+  renderDashboard();
+}
+
+function deleteProp(id) {
+  var p = getProp(id);
+  if (!p) return;
+  showConfirm("Supprimer " + p.name + " ?", function() {
+    for (var i = 0; i < PROPS.length; i++) {
+      if (PROPS[i].id === id) { PROPS.splice(i, 1); break; }
+    }
+    saveProps();
+    toast("Propriete supprimee");
+    renderProperties();
+    renderDashboard();
+    initSelects();
+  });
+}
+
+/* ===== CONFIRM DIALOG ===== */
+function showConfirm(msg, cb) {
+  _confirmCallback = cb;
+  document.getElementById("confirm-msg").textContent = msg;
+  document.getElementById("confirm-overlay").className = "overlay";
+  document.body.style.overflow = "hidden";
+}
+function closeConfirm() {
+  document.getElementById("confirm-overlay").className = "overlay hidden";
+  document.body.style.overflow = "";
+  _confirmCallback = null;
+}
+function confirmOK() {
+  if (_confirmCallback) _confirmCallback();
+  closeConfirm();
+}
+
+/* ===== SELECTS ===== */
+function initSelects() {
+  var selIds = ["filt-prop", "f-prop", "ai-prop"];
+  for (var s = 0; s < selIds.length; s++) {
+    var sel = document.getElementById(selIds[s]);
+    if (!sel) continue;
+    var opts = selIds[s] === "filt-prop" ? "<option value=\"all\">Toutes</option>" : "";
+    for (var p = 0; p < PROPS.length; p++) {
+      opts += "<option value=\"" + PROPS[p].id + "\">" + getFlag(PROPS[p].country) + " " + PROPS[p].name + "</option>";
+    }
+    sel.innerHTML = opts;
+  }
+}
+
+/* ===== IMPORT ===== */
+function triggerFileInput() {
+  document.getElementById("file-input").click();
+}
+
+function handleDrop(e) {
+  e.preventDefault();
+  var file = e.dataTransfer.files[0];
+  if (file) processFile(file);
+}
+
+function handleFileSelect(e) {
+  var file = e.target.files[0];
+  if (file) processFile(file);
+  e.target.value = "";
+}
+
+function readFileAsDataURL(file) {
+  return new Promise(function(resolve, reject) {
+    var reader = new FileReader();
+    reader.onload = function(ev) { resolve(ev.target.result); };
+    reader.onerror = function() { reject(new Error("Lecture echouee")); };
+    reader.readAsDataURL(file);
+  });
+}
+
+function readFileAsText(file) {
+  return new Promise(function(resolve, reject) {
+    var reader = new FileReader();
+    reader.onload = function(ev) { resolve(ev.target.result); };
+    reader.onerror = function() { reject(new Error("Lecture echouee")); };
+    reader.readAsText(file);
+  });
+}
+
+function readAsBinary(file) {
+  return new Promise(function(resolve, reject) {
+    var reader = new FileReader();
+    reader.onload = function(ev) { resolve(ev.target.result); };
+    reader.onerror = function() { reject(new Error("Lecture echouee")); };
+    reader.readAsBinaryString(file);
+  });
+}
+
+function loadXLSX() {
+  return new Promise(function(resolve, reject) {
+    if (window.XLSX) { resolve(); return; }
+    var s = document.createElement("script");
+    s.src = "https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js";
+    s.onload = resolve;
+    s.onerror = reject;
+    document.head.appendChild(s);
+  });
+}
+
+function processFile(file) {
+  showImportStatus("...", "Analyse du fichier...", "#0099FF");
+  var ext = file.name.split(".").pop().toLowerCase();
+  var isImage = (ext === "png" || ext === "jpg" || ext === "jpeg" || ext === "webp" || ext === "gif");
+  var isPDF = (ext === "pdf");
+  var isExcel = (ext === "xlsx" || ext === "xls");
+
+  var p;
+  if (isImage || isPDF) {
+    p = readFileAsDataURL(file).then(function(dataUrl) {
+      return {content: dataUrl, type: isImage ? "image" : "pdf"};
+    });
+  } else if (isExcel) {
+    p = loadXLSX().then(function() {
+      return readAsBinary(file);
+    }).then(function(bin) {
+      var wb = window.XLSX.read(bin, {type:"binary"});
+      var txt = "";
+      for (var i = 0; i < wb.SheetNames.length; i++) {
+        var ws = wb.Sheets[wb.SheetNames[i]];
+        txt += "Feuille: " + wb.SheetNames[i] + "\n" + window.XLSX.utils.sheet_to_csv(ws) + "\n\n";
+      }
+      return {content: txt, type: "text"};
+    });
+  } else {
+    p = readFileAsText(file).then(function(txt) {
+      return {content: txt, type: "text"};
+    });
+  }
+
+  p.then(function(result) {
+    return analyzeWithAI(result.content, file.name, result.type);
+  }).catch(function(err) {
+    showImportStatus("X", "Erreur: " + err.message, "#FF4444");
+  });
+}
+
+function analyzeWithAI(content, filename, type) {
+  showImportStatus("...", "Analyse IA...", "#0099FF");
+  var propList = "";
+  for (var i = 0; i < PROPS.length; i++) { propList += PROPS[i].id + ": " + PROPS[i].name + " (" + PROPS[i].city + "), "; }
+  var systemPrompt = "Extrait les reservations et retourne UNIQUEMENT du JSON valide: {\"reservations\":[{\"guestName\":\"Nom\",\"propertyId\":\"id\",\"checkIn\":\"YYYY-MM-DD\",\"checkOut\":\"YYYY-MM-DD\",\"amount\":\"\",\"status\":\"confirmed\",\"phone\":\"\",\"notes\":\"\"}]}. Proprietes: " + propList + " status valeurs: confirmed/pending/checkin/checkout/cancelled. Reponds UNIQUEMENT avec le JSON.";
+  var messages;
+  if (type === "image") {
+    var b64 = content.split(",")[1];
+    var mime = content.split(";")[0].split(":")[1];
+    messages = [{role:"user",content:[{type:"image",source:{type:"base64",media_type:mime,data:b64}},{type:"text",text:"Extrait les reservations."}]}];
+  } else if (type === "pdf") {
+    var b64pdf = content.split(",")[1];
+    messages = [{role:"user",content:[{type:"document",source:{type:"base64",media_type:"application/pdf",data:b64pdf}},{type:"text",text:"Extrait les reservations."}]}];
+  } else {
+    messages = [{role:"user",content:"Fichier: " + filename + "\n\n" + content.slice(0, 8000)}];
+  }
+  return fetch("/.netlify/functions/claude-proxy", {
+    method: "POST",
+    headers: {"Content-Type": "application/json"},
+    body: JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:2000,system:systemPrompt,messages:messages})
+  })
+  .then(function(r) { return r.json(); })
+  .then(function(data) {
+    var raw = "";
+    if (data.content) {
+      for (var i = 0; i < data.content.length; i++) {
+        if (data.content[i].type === "text") { raw = data.content[i].text; break; }
+      }
+    }
+    var match = raw.match(/{[\s\S]*}/);
+    if (!match) { showImportStatus("!", "Aucune reservation detectee.", "#FFB74D"); return; }
+    var parsed = JSON.parse(match[0]);
+    var resas = parsed.reservations || [];
+    if (!resas.length) { showImportStatus("!", "Aucune reservation trouvee.", "#FFB74D"); return; }
+    importedData = resas;
+    showImportStatus("OK", resas.length + " reservation(s) detectee(s)", "#00CC66");
+    renderImportPreview(resas);
+  })
+  .catch(function(err) {
+    showImportStatus("X", "Erreur: " + err.message, "#FF4444");
+  });
+}
+
+function showImportStatus(icon, msg, color) {
+  var el = document.getElementById("import-status");
+  var cnt = document.getElementById("import-status-content");
+  el.style.display = "block";
+  cnt.innerHTML = "<div style=\"display:flex;align-items:center;gap:10px\"><div style=\"font-size:22px\">" + icon + "</div><div style=\"font-size:13px;font-weight:600;color:" + color + "\">" + msg + "</div></div>";
+}
+
+function renderImportPreview(resas) {
+  var preview = document.getElementById("import-preview");
+  preview.style.display = "block";
+  var html = "";
+  for (var i = 0; i < resas.length; i++) {
+    var r = resas[i];
+    var p = getProp(r.propertyId) || PROPS[0];
+    var dup = false;
+    for (var j = 0; j < reservations.length; j++) {
+      if (reservations[j].guestName === r.guestName && reservations[j].checkIn === r.checkIn) { dup = true; break; }
+    }
+    html += "<div class=\"card\" style=\"margin-bottom:8px\"><div style=\"padding:12px 14px\">" +
+      "<div style=\"display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:6px\">" +
+      "<div><div style=\"font-weight:700;font-size:14px;color:#FFF\">" + r.guestName + (dup ? " <span style=\"background:#2B1A00;color:#FFB74D;border-radius:5px;padding:2px 6px;font-size:10px\">Doublon</span>" : "") + "</div>" +
+      "<div style=\"font-size:11px;color:#555;margin-top:2px\">" + (p ? getFlag(p.country) + " " + p.name : r.propertyId) + "</div></div>" +
+      "<button onclick=\"removeImportItem(" + i + ")\" style=\"background:none;border:none;color:#555;font-size:16px;cursor:pointer\">X</button></div>" +
+      "<div style=\"display:grid;grid-template-columns:1fr 1fr;gap:6px;font-size:12px\">" +
+      "<div style=\"color:#888\">📅 " + r.checkIn + " > " + r.checkOut + "</div>" +
+      "<div style=\"color:#888\">" + (r.amount ? r.amount + " " + (p ? p.currency : "XOF") : "Montant non renseigne") + "</div></div>" +
+      (r.notes ? "<div style=\"font-size:11px;color:#555;margin-top:5px;border-top:1px solid #1E1E1E;padding-top:5px\">" + r.notes + "</div>" : "") +
+      "</div></div>";
+  }
+  document.getElementById("import-list").innerHTML = html;
+  document.getElementById("confirm-import-btn").textContent = "Importer (" + resas.length + ")";
+}
+
+function removeImportItem(i) {
+  importedData.splice(i, 1);
+  if (!importedData.length) { clearImport(); return; }
+  renderImportPreview(importedData);
+}
+
+function confirmImport() {
+  var added = 0, skipped = 0;
+  for (var i = 0; i < importedData.length; i++) {
+    var r = importedData[i];
+    var dup = false;
+    for (var j = 0; j < reservations.length; j++) {
+      if (reservations[j].guestName === r.guestName && reservations[j].checkIn === r.checkIn) { dup = true; break; }
+    }
+    if (dup) { skipped++; continue; }
+    r.id = "imp_" + Date.now() + "_" + Math.random().toString(36).slice(2);
+    reservations.push(r);
+    added++;
+  }
+  saveRes();
+  toast(added + " importee(s)" + (skipped ? ", " + skipped + " doublon(s)" : ""));
+  clearImport();
+  renderDashboard();
+  showTab("reservations");
+}
+
+function clearImport() {
+  importedData = [];
+  document.getElementById("import-status").style.display = "none";
+  document.getElementById("import-preview").style.display = "none";
+}
+
+/* ===== PWA ===== */
+window.addEventListener("beforeinstallprompt", function(e) {
+  e.preventDefault();
+  deferredPrompt = e;
+  document.getElementById("install-banner").className = "install-banner";
+});
+function installApp() {
+  if (!deferredPrompt) return;
+  deferredPrompt.prompt();
+  deferredPrompt.userChoice.then(function() {
+    deferredPrompt = null;
+    document.getElementById("install-banner").className = "install-banner hidden";
+    toast("Application installee !");
+  });
+}
+window.addEventListener("online", function() { document.getElementById("conn-status").textContent = "En ligne"; });
+window.addEventListener("offline", function() { document.getElementById("conn-status").textContent = "Hors ligne"; });
+
+/* ===== INIT ===== */
+document.addEventListener("DOMContentLoaded", function() {
+  document.getElementById("modal-overlay").addEventListener("click", function(e) { if (e.target === this) closeModal(); });
+  document.getElementById("prop-modal-overlay").addEventListener("click", function(e) { if (e.target === this) closePropModal(); });
+  document.getElementById("confirm-overlay").addEventListener("click", function(e) { if (e.target === this) closeConfirm(); });
+
+  loadProps();
+  loadData();
+  initSelects();
+  renderDashboard();
+});
+
+</script>
