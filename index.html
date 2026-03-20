@@ -1029,59 +1029,112 @@ function processFile(file) {
   });
 }
 
-function analyzeWithAI(content, filename, type) {
-  showImportStatus("...", "Analyse IA...", "#0099FF");
-  var propList = "";
-  for (var i = 0; i < PROPS.length; i++) { propList += PROPS[i].id + ": " + PROPS[i].name + " (" + PROPS[i].city + "), "; }
+function compressImage(dataUrl, maxWidth, quality, callback) {
+  var img = new Image();
+  img.onload = function() {
+    var canvas = document.createElement("canvas");
+    var w = img.width;
+    var h = img.height;
+    if (w > maxWidth) { h = Math.round(h * maxWidth / w); w = maxWidth; }
+    canvas.width = w;
+    canvas.height = h;
+    var ctx = canvas.getContext("2d");
+    ctx.drawImage(img, 0, 0, w, h);
+    callback(canvas.toDataURL("image/jpeg", quality));
+  };
+  img.src = dataUrl;
+}
 
-  var messages;
-  if (type === "image") {
-    var b64 = content.split(",")[1];
-    var mime = content.split(";")[0].split(":")[1];
-    messages = [{role:"user",content:[
-      {type:"image",source:{type:"base64",media_type:mime,data:b64}},
-      {type:"text",text:"Proprietes disponibles: " + propList + " Extrait toutes les reservations visibles dans cette capture Booking.com."}
-    ]}];
-  } else if (type === "pdf") {
-    var b64pdf = content.split(",")[1];
-    messages = [{role:"user",content:[
-      {type:"document",source:{type:"base64",media_type:"application/pdf",data:b64pdf}},
-      {type:"text",text:"Proprietes disponibles: " + propList + " Extrait toutes les reservations."}
-    ]}];
-  } else {
-    messages = [{role:"user",content:"Proprietes disponibles: " + propList + " Fichier: " + filename + "\n\n" + content.slice(0,8000)}];
+function analyzeWithAI(content, filename, type) {
+  showImportStatus("...", "Analyse IA en cours...", "#0099FF");
+  var propList = "";
+  for (var i = 0; i < PROPS.length; i++) {
+    propList += PROPS[i].id + ": " + PROPS[i].name + " (" + PROPS[i].city + "); ";
   }
 
-  return fetch("/.netlify/functions/claude-proxy", {
-    method: "POST",
-    headers: {"Content-Type": "application/json"},
-    body: JSON.stringify({
-      model: "claude-sonnet-4-20250514",
-      max_tokens: 1500,
-      import_mode: true,
-      messages: messages
-    })
-  })
-  .then(function(r) { return r.json(); })
-  .then(function(data) {
-    var raw = "";
-    if (data.content) {
-      for (var i = 0; i < data.content.length; i++) {
-        if (data.content[i].type === "text") { raw = data.content[i].text; break; }
-      }
+  function doAnalyze(finalContent, finalType) {
+    var messages;
+    if (finalType === "image") {
+      var b64 = finalContent.split(",")[1];
+      var mime = finalContent.split(";")[0].split(":")[1];
+      messages = [{role:"user", content:[
+        {type:"image", source:{type:"base64", media_type:mime, data:b64}},
+        {type:"text", text:"Proprietes disponibles: " + propList + "\nExtrait toutes les reservations visibles dans cette image Booking.com."}
+      ]}];
+    } else if (finalType === "pdf") {
+      var b64pdf = finalContent.split(",")[1];
+      messages = [{role:"user", content:[
+        {type:"document", source:{type:"base64", media_type:"application/pdf", data:b64pdf}},
+        {type:"text", text:"Proprietes disponibles: " + propList + "\nExtrait toutes les reservations de ce document."}
+      ]}];
+    } else {
+      messages = [{role:"user", content:"Proprietes disponibles: " + propList + "\n\nContenu du fichier " + filename + ":\n" + finalContent.slice(0, 8000)}];
     }
-    var match = raw.match(/{[\s\S]*}/);
-    if (!match) { showImportStatus("!", "Aucune reservation detectee. Essayez une capture plus nette.", "#FFB74D"); return; }
-    var parsed = JSON.parse(match[0]);
-    var resas = parsed.reservations || [];
-    if (!resas.length) { showImportStatus("!", "Aucune reservation trouvee dans ce fichier.", "#FFB74D"); return; }
-    importedData = resas;
-    showImportStatus("OK", resas.length + " reservation(s) detectee(s) !", "#00CC66");
-    renderImportPreview(resas);
-  })
-  .catch(function(err) {
-    showImportStatus("X", "Erreur: " + err.message, "#FF4444");
-  });
+
+    fetch("/.netlify/functions/claude-proxy", {
+      method: "POST",
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({
+        model: "claude-sonnet-4-20250514",
+        max_tokens: 1500,
+        messages: messages
+      })
+    })
+    .then(function(r) {
+      if (!r.ok) {
+        return r.json().then(function(e) {
+          throw new Error("API erreur " + r.status + ": " + (e.error || JSON.stringify(e)));
+        });
+      }
+      return r.json();
+    })
+    .then(function(data) {
+      if (data.error) {
+        showImportStatus("X", "Erreur API: " + data.error, "#FF4444");
+        return;
+      }
+      var raw = "";
+      if (data.content) {
+        for (var i = 0; i < data.content.length; i++) {
+          if (data.content[i].type === "text") { raw = data.content[i].text; break; }
+        }
+      }
+      if (!raw) {
+        showImportStatus("!", "Reponse vide de l IA. Reessayez.", "#FFB74D");
+        return;
+      }
+      var match = raw.match(/\{[\s\S]*\}/);
+      if (!match) {
+        showImportStatus("!", "Format non reconnu: " + raw.slice(0, 100), "#FFB74D");
+        return;
+      }
+      try {
+        var parsed = JSON.parse(match[0]);
+        var resas = parsed.reservations || [];
+        if (!resas.length) {
+          showImportStatus("!", "Aucune reservation trouvee. Essayez avec une capture plus nette.", "#FFB74D");
+          return;
+        }
+        importedData = resas;
+        showImportStatus("OK", resas.length + " reservation(s) detectee(s) !", "#00CC66");
+        renderImportPreview(resas);
+      } catch(parseErr) {
+        showImportStatus("X", "Erreur JSON: " + parseErr.message, "#FF4444");
+      }
+    })
+    .catch(function(err) {
+      showImportStatus("X", "Erreur: " + err.message, "#FF4444");
+    });
+  }
+
+  if (type === "image") {
+    showImportStatus("...", "Compression de l image...", "#0099FF");
+    compressImage(content, 1200, 0.75, function(compressed) {
+      doAnalyze(compressed, "image");
+    });
+  } else {
+    doAnalyze(content, type);
+  }
 }
 
 function showImportStatus(icon, msg, color) {
