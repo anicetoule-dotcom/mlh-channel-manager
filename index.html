@@ -420,8 +420,7 @@ select option{background:#1A1A1A;color:#FFF}
 </div>
 </div>
 
-<script>
-/* MLH Channel Manager - Pure ES5, no modern syntax */
+<script>/* MLH Channel Manager - Pure ES5, no modern syntax */
 
 /* ===== DATA ===== */
 var DEFAULT_PROPS = [
@@ -1029,6 +1028,7 @@ function processFile(file) {
   });
 }
 
+
 function compressImage(dataUrl, maxWidth, quality, callback) {
   var img = new Image();
   img.onload = function() {
@@ -1042,6 +1042,7 @@ function compressImage(dataUrl, maxWidth, quality, callback) {
     ctx.drawImage(img, 0, 0, w, h);
     callback(canvas.toDataURL("image/jpeg", quality));
   };
+  img.onerror = function() { callback(dataUrl); };
   img.src = dataUrl;
 }
 
@@ -1054,84 +1055,62 @@ function analyzeWithAI(content, filename, type) {
 
   function doAnalyze(finalContent, finalType) {
     var messages;
+    var userText = "Proprietes disponibles: " + propList + " Extrait toutes les reservations visibles.";
+
     if (finalType === "image") {
       var b64 = finalContent.split(",")[1];
-      var mime = finalContent.split(";")[0].split(":")[1];
+      if (!b64) { showImportStatus("X", "Erreur lecture image", "#FF4444"); return; }
       messages = [{role:"user", content:[
-        {type:"image", source:{type:"base64", media_type:mime, data:b64}},
-        {type:"text", text:"Proprietes disponibles: " + propList + "\nExtrait toutes les reservations visibles dans cette image Booking.com."}
+        {type:"image", source:{type:"base64", media_type:"image/jpeg", data:b64}},
+        {type:"text", text:userText}
       ]}];
+
     } else if (finalType === "pdf") {
       var b64pdf = finalContent.split(",")[1];
+      if (!b64pdf) { showImportStatus("X", "Erreur lecture PDF", "#FF4444"); return; }
       messages = [{role:"user", content:[
         {type:"document", source:{type:"base64", media_type:"application/pdf", data:b64pdf}},
-        {type:"text", text:"Proprietes disponibles: " + propList + "\nExtrait toutes les reservations de ce document."}
+        {type:"text", text:userText}
       ]}];
+
     } else {
-      messages = [{role:"user", content:"Proprietes disponibles: " + propList + "\n\nContenu du fichier " + filename + ":\n" + finalContent.slice(0, 8000)}];
+      messages = [{role:"user", content:"Proprietes: " + propList + " Fichier: " + filename + "\n\n" + finalContent.slice(0, 8000)}];
     }
+
+    showImportStatus("...", "Envoi a l IA...", "#0099FF");
 
     fetch("/.netlify/functions/claude-proxy", {
       method: "POST",
       headers: {"Content-Type": "application/json"},
-      body: JSON.stringify({
-        model: "claude-sonnet-4-20250514",
-        max_tokens: 1500,
-        messages: messages
-      })
+      body: JSON.stringify({model:"claude-sonnet-4-20250514", max_tokens:1500, messages:messages})
     })
-    .then(function(r) {
-      if (!r.ok) {
-        return r.json().then(function(e) {
-          throw new Error("API erreur " + r.status + ": " + (e.error || JSON.stringify(e)));
-        });
-      }
-      return r.json();
-    })
+    .then(function(r) { return r.json(); })
     .then(function(data) {
-      if (data.error) {
-        showImportStatus("X", "Erreur API: " + data.error, "#FF4444");
-        return;
-      }
+      if (data.error) { showImportStatus("X", data.error, "#FF4444"); return; }
       var raw = "";
       if (data.content) {
         for (var i = 0; i < data.content.length; i++) {
           if (data.content[i].type === "text") { raw = data.content[i].text; break; }
         }
       }
-      if (!raw) {
-        showImportStatus("!", "Reponse vide de l IA. Reessayez.", "#FFB74D");
-        return;
-      }
+      if (!raw) { showImportStatus("!", "Reponse vide - reessayez", "#FFB74D"); return; }
       var match = raw.match(/\{[\s\S]*\}/);
-      if (!match) {
-        showImportStatus("!", "Format non reconnu: " + raw.slice(0, 100), "#FFB74D");
-        return;
-      }
+      if (!match) { showImportStatus("!", "Format non reconnu: " + raw.slice(0,80), "#FFB74D"); return; }
       try {
         var parsed = JSON.parse(match[0]);
         var resas = parsed.reservations || [];
-        if (!resas.length) {
-          showImportStatus("!", "Aucune reservation trouvee. Essayez avec une capture plus nette.", "#FFB74D");
-          return;
-        }
+        if (!resas.length) { showImportStatus("!", "Aucune reservation detectee", "#FFB74D"); return; }
         importedData = resas;
-        showImportStatus("OK", resas.length + " reservation(s) detectee(s) !", "#00CC66");
+        showImportStatus("OK", resas.length + " reservation(s) !", "#00CC66");
         renderImportPreview(resas);
-      } catch(parseErr) {
-        showImportStatus("X", "Erreur JSON: " + parseErr.message, "#FF4444");
-      }
+      } catch(e) { showImportStatus("X", "Erreur JSON: " + e.message, "#FF4444"); }
     })
-    .catch(function(err) {
-      showImportStatus("X", "Erreur: " + err.message, "#FF4444");
-    });
+    .catch(function(err) { showImportStatus("X", "Erreur: " + err.message, "#FF4444"); });
   }
 
   if (type === "image") {
-    showImportStatus("...", "Compression de l image...", "#0099FF");
-    compressImage(content, 1200, 0.75, function(compressed) {
-      doAnalyze(compressed, "image");
-    });
+    showImportStatus("...", "Compression image...", "#0099FF");
+    compressImage(content, 1024, 0.80, function(compressed) { doAnalyze(compressed, "image"); });
   } else {
     doAnalyze(content, type);
   }
@@ -1231,5 +1210,6 @@ document.addEventListener("DOMContentLoaded", function() {
   initSelects();
   renderDashboard();
 });
-
 </script>
+</body>
+</html>
