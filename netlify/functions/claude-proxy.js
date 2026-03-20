@@ -10,25 +10,29 @@ exports.handler = async function(event, context) {
   }
 
   if (event.httpMethod !== "POST") {
-    return { statusCode: 405, headers: corsHeaders, body: JSON.stringify({ error: "Method not allowed" }) };
+    return { statusCode: 405, headers: corsHeaders, body: JSON.stringify({ error: "Methode non autorisee" }) };
   }
 
   var body;
   try {
     body = JSON.parse(event.body);
   } catch(e) {
-    return { statusCode: 400, headers: corsHeaders, body: JSON.stringify({ error: "Invalid JSON" }) };
+    return { statusCode: 400, headers: corsHeaders, body: JSON.stringify({ error: "JSON invalide: " + e.message }) };
   }
 
   var apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) {
-    return { statusCode: 500, headers: corsHeaders, body: JSON.stringify({ error: "Cle API manquante - verifiez les variables d environnement Netlify" }) };
+    return { statusCode: 500, headers: corsHeaders, body: JSON.stringify({ error: "Cle API manquante dans Netlify" }) };
   }
 
-  var systemPrompt = "Tu es un expert en extraction de donnees de reservations depuis Booking.com Pulse.\n\nExtrait TOUTES les reservations visibles et reponds UNIQUEMENT avec ce JSON valide:\n{\"reservations\":[{\"guestName\":\"Nom complet\",\"propertyId\":\"mar1\",\"checkIn\":\"YYYY-MM-DD\",\"checkOut\":\"YYYY-MM-DD\",\"amount\":\"154224\",\"status\":\"confirmed\",\"phone\":\"\",\"notes\":\"7 nuits 1 adulte\"}]}\n\nREGLES:\n- Dates francaises: 'mer. 25 mars 2026' = '2026-03-25', '1 avr. 2026' = '2026-04-01'\n- Montants: 'XOF 154 224' = '154224', enleve espaces et symboles\n- Status: confirmed si future, checkin si aujourd hui, checkout si part aujourd hui\n- Genius = ajouter dans notes\n- Une seule reservation visible = retourner quand meme dans le tableau\n- Proprietes disponibles seront dans le message utilisateur\n- UNIQUEMENT le JSON, aucun texte avant ou apres";
+  var systemPrompt = "Tu es un expert en extraction de donnees de reservations Booking.com. Extrait TOUTES les reservations et reponds UNIQUEMENT avec ce JSON: {\"reservations\":[{\"guestName\":\"Nom\",\"propertyId\":\"mar1\",\"checkIn\":\"YYYY-MM-DD\",\"checkOut\":\"YYYY-MM-DD\",\"amount\":\"154224\",\"status\":\"confirmed\",\"phone\":\"\",\"notes\":\"\"}]}. Regles: dates francaises -> format YYYY-MM-DD, montants -> chiffres uniquement, meme une seule reservation -> retourner dans tableau, UNIQUEMENT le JSON.";
 
   if (body.system) {
     systemPrompt = body.system;
+  }
+
+  if (!body.messages || !Array.isArray(body.messages)) {
+    return { statusCode: 400, headers: corsHeaders, body: JSON.stringify({ error: "messages manquant ou invalide" }) };
   }
 
   try {
@@ -42,6 +46,16 @@ exports.handler = async function(event, context) {
     };
 
     var payload = JSON.stringify(requestBody);
+    var payloadSize = Buffer.byteLength(payload);
+
+    /* Verifier taille - limite Netlify 6MB */
+    if (payloadSize > 5 * 1024 * 1024) {
+      return {
+        statusCode: 413,
+        headers: corsHeaders,
+        body: JSON.stringify({ error: "Fichier trop volumineux (" + Math.round(payloadSize/1024) + "KB). Max 5MB." })
+      };
+    }
 
     var result = await new Promise(function(resolve, reject) {
       var options = {
@@ -52,7 +66,7 @@ exports.handler = async function(event, context) {
           "Content-Type": "application/json",
           "x-api-key": apiKey,
           "anthropic-version": "2023-06-01",
-          "Content-Length": Buffer.byteLength(payload)
+          "Content-Length": payloadSize
         }
       };
 
@@ -69,8 +83,20 @@ exports.handler = async function(event, context) {
       req.end();
     });
 
+    /* Si erreur Anthropic, retourner le detail exact */
+    if (result.status !== 200) {
+      var errBody;
+      try { errBody = JSON.parse(result.body); } catch(e) { errBody = { raw: result.body.slice(0, 500) }; }
+      var errMsg = (errBody.error && errBody.error.message) ? errBody.error.message : JSON.stringify(errBody).slice(0, 300);
+      return {
+        statusCode: result.status,
+        headers: corsHeaders,
+        body: JSON.stringify({ error: "Anthropic " + result.status + ": " + errMsg })
+      };
+    }
+
     return {
-      statusCode: result.status,
+      statusCode: 200,
       headers: Object.assign({ "Content-Type": "application/json" }, corsHeaders),
       body: result.body
     };
@@ -79,7 +105,7 @@ exports.handler = async function(event, context) {
     return {
       statusCode: 502,
       headers: corsHeaders,
-      body: JSON.stringify({ error: "Erreur proxy: " + err.message })
+      body: JSON.stringify({ error: "Erreur reseau: " + err.message })
     };
   }
 };
